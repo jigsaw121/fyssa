@@ -36,7 +36,7 @@ def call():
 	try:
 		rawfetch("cmd", "'list' to see all")
 		return func(get("cmd"))
-	except ():#TypeError, KeyError
+	except (TypeError, KeyError):
 		print "Not a function"
 		return call()
 	return True
@@ -132,7 +132,7 @@ def topostfix(eq):
 
 #def xsum(a,b):
 
-def varop(lst, i, op):
+def varop(lst, i, op, nvarbeh):
 	# an operation on two numbers, defined by the 'op' function
 	# modifies the list 'lst' from the starting index 'i' onwards
 	
@@ -147,7 +147,7 @@ def varop(lst, i, op):
 	# for one, incompatible operation ax op b
 	# for two, both of form ax
 	if xc==1: 
-		out = lst[i] + lst[i+2] + lst[i+1]
+		out = nvarbeh(lst)
 	elif xc==0:
 		out = op(factorof(lst[i]), factorof(lst[i+1]))
 	elif xc==2:
@@ -158,16 +158,19 @@ def varop(lst, i, op):
 	return 1
 	
 def add(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) + int(y))))
+	return varop(lst, i, (lambda x,y: str(int(x) + int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
 
 def sub(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) - int(y))))
+	return varop(lst, i, (lambda x,y: str(int(x) - int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
 
 def mul(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) * int(y))))
+	return varop(lst, i, (lambda x,y: str(int(x) * int(y))), (lambda lst: str(int(factorof(lst[i])) * int(factorof(lst[i+1]))) + "x"))
 
 def div(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) / int(y))))
+	return varop(lst, i, (lambda x,y: str(int(x) / int(y))), (lambda lst: str(int(factorof(lst[i])) / int(factorof(lst[i+1]))) + "x"))
+	
+def pow2(lst, i):
+	return varop(lst, i, (lambda x,y: str(int(x) ^ int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
 
 def toint(op):
 	if op in "+-/*^": return op
@@ -206,6 +209,13 @@ def dopostfix(eq):
 				i-=gone
 			else:
 				i+=1
+		elif eq[i]=="^":
+			gone = div(eq, i-2)
+			if gone:
+				eq.pop(i-gone)
+				i-=gone
+			else:
+				i+=1
 		else:
 			i+=1
 		print eq, i
@@ -219,12 +229,19 @@ def repostfix(eq):
 	
 def derive():
 	rawfetch("eq", "equation")
-	eq = get("eq")
+	oldeq = get("eq")
 	
-	eq = topostfix(eq)
+	eq = topostfix(oldeq)
 	print "postfix form: %s" % " ".join(eq)
 	eq = dopostfix(eq)
 	eq = repostfix(eq)
+	#while eq[0] != oldeq[0]:
+	#	oldeq = eq
+	#	eq = topostfix(oldeq)
+	#	print "postfix form: %s" % " ".join(eq)
+	#	eq = dopostfix(eq)
+	#	eq = repostfix(eq)
+		
 	#eq = eq.split("^")
 	#eq = multiply(eq[1], eq[0])+"^"+str(int(eq[1])-1) 
 	set("eq", eq)
