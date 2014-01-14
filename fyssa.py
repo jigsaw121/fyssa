@@ -36,7 +36,7 @@ def call():
 	try:
 		rawfetch("cmd", "'list' to see all")
 		return func(get("cmd"))
-	except (TypeError, KeyError):
+	except ():#(TypeError, KeyError):
 		print "Not a function"
 		return call()
 	return True
@@ -101,6 +101,13 @@ def topostfix(eq):
 	out=[]
 	ops=[]
 	
+	if eq[0]=="-":
+		nxt = eq.find("-+*/(", 1)
+		#eq="0"+eq
+		if "x" in eq[0:nxt]:
+			eq = "0x"+eq
+		else:
+			eq = "0"+eq
 	while eq:
 		nxt = next_op(eq)
 		if nxt not in "+-/*^()": 
@@ -138,16 +145,18 @@ def varop(lst, i, op, nvarbeh):
 	
 	xc = int("x" in lst[i]) + int("x" in lst[i+1])
 	
-	for c in "+-*/":
-		if lst[i].find(c) != -1 or lst[i+1].find(c) != -1:
-			xc = 1
+	for c in "+-*/^":
+		if lst[i].find(c,int(len(lst[i])>1)) != -1 or lst[i+1].find(c,int(len(lst[i+1])>1)) != -1:
+			xc = 3
 			break
 	
 	# for zero xc, both just numbers
 	# for one, incompatible operation ax op b
 	# for two, both of form ax
-	if xc==1: 
-		out = nvarbeh(lst)
+	if xc==3:
+		out = lst[i] + lst[i+2] + lst[i+1]
+	elif xc==1: 
+		out = nvarbeh(lst,i)
 	elif xc==0:
 		out = op(factorof(lst[i]), factorof(lst[i+1]))
 	elif xc==2:
@@ -158,19 +167,19 @@ def varop(lst, i, op, nvarbeh):
 	return 1
 	
 def add(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) + int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
+	return varop(lst, i, (lambda x,y: str(int(x) + int(y))), (lambda lst,i: lst[i] + lst[i+2] + lst[i+1]))
 
 def sub(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) - int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
+	return varop(lst, i, (lambda x,y: str(int(x) - int(y))), (lambda lst,i: lst[i] + lst[i+2] + lst[i+1]))
 
 def mul(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) * int(y))), (lambda lst: str(int(factorof(lst[i])) * int(factorof(lst[i+1]))) + "x"))
+	return varop(lst, i, (lambda x,y: str(int(x) * int(y))), (lambda lst,i: str(int(factorof(lst[i])) * int(factorof(lst[i+1]))) + "x"))
 
 def div(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) / int(y))), (lambda lst: str(int(factorof(lst[i])) / int(factorof(lst[i+1]))) + "x"))
+	return varop(lst, i, (lambda x,y: str(int(x) / int(y))), (lambda lst,i: str(int(factorof(lst[i])) / int(factorof(lst[i+1]))) + "x"))
 	
 def pow2(lst, i):
-	return varop(lst, i, (lambda x,y: str(int(x) ^ int(y))), (lambda lst: lst[i] + lst[i+2] + lst[i+1]))
+	return varop(lst, i, (lambda x,y: str(int(x)**int(y))), (lambda lst,i: lst[i] + lst[i+2] + lst[i+1]))
 
 def toint(op):
 	if op in "+-/*^": return op
@@ -210,7 +219,7 @@ def dopostfix(eq):
 			else:
 				i+=1
 		elif eq[i]=="^":
-			gone = div(eq, i-2)
+			gone = pow2(eq, i-2)
 			if gone:
 				eq.pop(i-gone)
 				i-=gone
@@ -234,7 +243,7 @@ def derive():
 	eq = topostfix(oldeq)
 	print "postfix form: %s" % " ".join(eq)
 	eq = dopostfix(eq)
-	eq = repostfix(eq)
+	eq = repostfix(eq)[0]
 	#while eq[0] != oldeq[0]:
 	#	oldeq = eq
 	#	eq = topostfix(oldeq)
